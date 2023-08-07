@@ -2,12 +2,18 @@ import { useState } from "react";
 import { nanoid } from "nanoid";
 import { decode } from "he";
 import Trivia from "./components/Trivia.jsx";
+import { categories } from "./data.jsx";
 
 export default function App() {
   const [quiz, setQuiz] = useState(null);
   const [selected, setSelected] = useState([]);
   const [isChecked, setIsChecked] = useState(false);
   const [message, setMessage] = useState("");
+  const [parameters, setParameters] = useState({
+    difficulty: "any",
+    category: 0,
+    type: "any",
+  });
 
   const result =
     JSON.stringify(selected) !== "{}" &&
@@ -43,8 +49,24 @@ export default function App() {
     return arr;
   }
 
-  async function startQuiz() {
-    const res = await fetch("https://opentdb.com/api.php?amount=5&category=22");
+  async function startQuiz(event) {
+    !isChecked && event.preventDefault();
+
+    let url = "https://opentdb.com/api.php?amount=5";
+
+    const params = Object.entries(parameters).filter(
+      ([key, value]) =>
+        ((key === "difficulty" || key === "type") && value !== "any") ||
+        (key === "category" && value !== 0)
+    );
+
+    if (params.length > 0) {
+      params.forEach(([key, value]) => {
+        url += `&${key}=${value}`;
+      });
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
 
     setQuiz(
@@ -107,6 +129,21 @@ export default function App() {
     setMessage("");
   }
 
+  function setOptions(event) {
+    const name = event.target.name;
+    setParameters((prevParam) => ({
+      ...prevParam,
+      [name]: event.target.value,
+    }));
+  }
+
+  function restart() {
+    setIsChecked(false);
+    setSelected([]);
+    setMessage("");
+    setQuiz(null);
+  }
+
   return (
     <div className="quiz--container">
       {!quiz ? (
@@ -115,9 +152,54 @@ export default function App() {
           <img src="/img/start2.png" className="img--two" />
           <h1 className="start--title">Quizzical</h1>
           <p>The best trivia in town</p>
-          <button className="start--btn" onClick={startQuiz}>
-            Start quiz
-          </button>
+          <form className="parameters--form">
+            <div className="params--container">
+              <label htmlFor="difficulty">Choose difficulty level:</label>
+              <select
+                name="difficulty"
+                id="difficulty"
+                value={parameters.difficulty}
+                onChange={setOptions}
+              >
+                <option value="any">Any difficulty</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+            <div className="params--container">
+              <label htmlFor="category">Choose category:</label>
+              <select
+                name="category"
+                id="category"
+                value={parameters.category}
+                onChange={setOptions}
+              >
+                <option value={0}>Any category</option>
+                {categories.trivia_categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="params--container">
+              <label htmlFor="type">Choose type:</label>
+              <select
+                name="type"
+                id="type"
+                value={parameters.type}
+                onChange={setOptions}
+              >
+                <option value="any">Any type</option>
+                <option value="multiple">Multiple choice</option>
+                <option value="boolean">True / False</option>
+              </select>
+            </div>
+            <button className="start--btn" onClick={startQuiz}>
+              Start quiz
+            </button>
+          </form>
         </div>
       ) : (
         <div>
@@ -137,6 +219,9 @@ export default function App() {
                 <span className="results--display">{message}</span>
                 <button className="trivias--btn" onClick={playAgain}>
                   Play again
+                </button>
+                <button className="restart-btn" onClick={restart}>
+                  Reset parameters
                 </button>
               </div>
             )}
