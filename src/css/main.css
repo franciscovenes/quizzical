@@ -33,7 +33,7 @@ button {
 .quiz--container {
   position: relative;
   background-color: #f5f7fb;
-  height: 100vh;
+  min-height: 100vh;
   max-width: 700px;
   margin: 0 auto;
   min-height: 500px;
